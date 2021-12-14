@@ -2,101 +2,93 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\givePermission;
+use App\Http\Requests\viewPhoto;
 use App\Models\permission;
 use App\Models\photos;
 use App\Models\User;
-use Illuminate\Http\Request;
+use Throwable;
 
 class PermissionController extends Controller
 {
     
-    public function givePermission(Request $request)
-    {
-        $fields = $request->validate([
-            'granted_to' => 'required|email',
-            'address' => 'required'
-        ]);
-        //call a helper function to decode user id
-        $userID = decodingUserID($request);
+    public function givePermission(givePermission $request){
+        try{
+            $fields = $request->validated();
 
-        $receiverAddress = photos::where('address', $fields['address'])->first();
-        $Address= $receiverAddress->address;
-        $sender = User::where('id', $userID)->first();
-        $User = User::where('email',$fields['granted_to'])->first();
-        
-        // dd($receiverAddress);
+            $userID = decodingUserID($request);
 
-        if($receiverAddress == null){
-            return [
-                'Message' => 'Image Does not Exist'
-            ];
+            $receiverAddress = photos::where('address', $fields['address'])->first();
+            $Address= $receiverAddress->address;
+            $sender = User::where('id', $userID)->first();
+            $User = User::where('email',$fields['access_to'])->first();
+            
+            if($receiverAddress == null){
+                return [
+                    'Message' => 'Photo does not exist'
+                ];
+            }
+            if ($sender['email'] == $fields['access_to']) {
+                return response([
+                    'Message' => "You can't give permission to yourself"
+                ]);
+            }
+            if ($User == null) {
+                return response([
+                    'Message' => 'User not Exist'
+                ]);
+            }
+
+            permission::create([
+                'access_to' => $fields['access_to'],
+                'granted_by' => $userID,
+                'address' => $Address
+            ]);
+
+            return response([
+                'Message' => 'Permission given successfully'
+            ]);
+        } catch (Throwable $e) {
+            return $e->getMessage();
         }
-        if ($sender->email == $fields['granted_to']) {
-            return [
-                'Message' => 'you cannot give permission to yourself',
-                'Address' => $Address
-            ];
-        }
-        if ($User == null) {
-            return [
-                'User not Exist'
-            ];
-        }
-
-        permission::create([
-            'granted_to' => $fields['granted_to'],
-            'granted_by' => $userID,
-            'address' => $Address
-        ]);
-
-        return response([
-            'message' => 'Permission has been granted'
-        ], 200);
     }
 
-    public function viewImage(Request $request)
-    {
-        dd("asa");
-        $fields = $request->validate([
-            'address' => 'required',
-        ]);
-        
-        //call a helper function to decode user id
-        $userID = decodingUserID($request);
+    public function viewPhoto(viewPhoto $request){
+        try{
+            $fields = $request->validated();
+            
+            $userID = decodingUserID($request);
 
-        // dd($userID);
-        // viewImage
-        $imageAddress = photos::where('address', $fields['address'])->first();
-        $address = $imageAddress->address;
-        // dd($address);
-        $user = User::where('id', $userID)->first();
-        // dd($user);
-        $access = permission::where('address', $fields['address'])->where('granted_to', $user['email'])->first();
-        // dd($access);
+            $PhotoAddress = photos::where('address', $fields['address'])->first();
+            $address = $PhotoAddress->address;
+            $user = User::where('id', $userID)->first();
+            $permission = permission::where('address', $fields['address'])->where('access_to', $user['email'])->first();
+            
+            if ($PhotoAddress == null) {
+                return response([
+                    'Message' => 'Bad request'
+                ]);
+            }
 
-        
-        if ($imageAddress == null) {
-            return response(['message' => 'Please Enter Valid address']);
-        }
-        if ($access == null) {
-            return response(['message' => 'You dont have permission! Please request for Access']);
-        }
-        if ($imageAddress->privacy == 'hidden' && $access['address'] == $fields['address']) {
-            return ['Message' => 'This Image is hidden'];
-        }
-        if ($access['granted_to'] == $user['email']) {
-            return response([
-                'Your Image to View' => $address
+            if ($permission == null) {
+                return response([
+                    'Message' => 'You dont have permission!'
+                ]);
+            }
+
+            if ($PhotoAddress->privacy == 'hidden' && $permission['address'] == $fields['address']) {
+                return response([
+                    'Message' => 'Photo is hidden'
             ]);
-        }
-        // if ($access == null) {
-        //     return response(['message' => 'you dont have permission!. Please grant for Access']);
-        // }
-        
-        if ($access['granted_to'] == $user['email']) {
-            return response([
-                'address to View' => $imageAddress['address']
-            ]);
+            }
+
+            if ($permission['access_to'] == $user['email']) {
+                return response([
+                    'Requested photo' => $address
+                ]);
+            }
+        } catch (Throwable $e) {
+            return $e->getMessage();
         }
     }
 }

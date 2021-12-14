@@ -19,10 +19,10 @@ class UserController extends Controller{
        try {
             $fields = $request->validated();
 
-            $uniquePhoto = time() . $fields['profile_picture']->getClientOriginalName();
-            $fields['profile_picture']->storeAs('user_images/profile_photos/', $uniquePhoto);
+            $uniquePhoto = date('d-m-Y_H-i-s') . $fields['profile_picture']->getClientOriginalName();
             $directory = 'C:/xampp/htdocs/PF_Backend/Laravel/laravelAPIforIntegration/storage/app/user_images/profile_photos/';
             $address = $directory . $uniquePhoto;
+            $fields['profile_picture']->storeAs('user_images/profile_photos/', $uniquePhoto);
             
             $token = (new GenerateToken)->createToken($fields['email']);
             $verificationURL = 'http://127.0.0.1:8000/api/emailVerification/' . $token . '/' . $fields['email'];
@@ -129,14 +129,8 @@ class UserController extends Controller{
     }
 
     public function seeProfile(Request $request){
-        try {
+        // try {
             $userID = decodingUserID($request);
-            $check = Tokens::where('token', $request->bearerToken())->first();
-            if (!isset($check)) {
-                return response([
-                    "message" => "Invalid request!"
-                ]);
-            }
 
             if ($userID) {
                 $profile = User::find($userID);
@@ -144,9 +138,10 @@ class UserController extends Controller{
                     "Profile" => new userResource($profile)
                 ]);
             }
-        } catch (Throwable $e) {
-            return $e->getMessage();
-        }
+
+        // } catch (Throwable $e) {
+        //     return $e->getMessage();
+        // }
     }
 
     public function updateProfile(Request $request, $id){
@@ -154,23 +149,25 @@ class UserController extends Controller{
             $user = User::all()->where('id', $id)->first();
 
             if (isset($user)) {             
+                $user->update($request->all());
                 if ($request->file('profile_picture') != null) {
-                    $uniquePhoto = time() . $user['profile_picture']->getClientOriginalName();
+                    $uniquePhoto = date('d-m-Y_H-i-s') . $request->file('profile_picture')->getClientOriginalName();
                     $directory = 'C:/xampp/htdocs/PF_Backend/Laravel/laravelAPIforIntegration/storage/app/user_images/profile_photos/';
                     $address = $directory . $uniquePhoto;
-                    $request->file('profile_picture')->storeAs('user_images/profile_photos/', $uniquePhoto);
                     $user->profile_picture = $address;
+                    
+                    $request->file('profile_picture')->storeAs('user_images/profile_photos/', $uniquePhoto);
+                    $user->save();
                 }
-                
-                $user->save();
 
                 return response([
-                    'message' => 'You have successfully updated your Profile',
+                    'Message' => 'You have successfully updated your profile'
                 ]);
             }
+
             if ($user == null) {
                 return response([
-                    'message' => 'User not found',
+                    'Message' => 'Bad request'
                 ]);
             }
 

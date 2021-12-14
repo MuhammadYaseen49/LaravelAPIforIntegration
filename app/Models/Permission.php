@@ -13,7 +13,7 @@ class Permission extends Model
     
     protected $fillable = [
         'granted_by',
-        'granted_to',
+        'access_to',
         'address'
     ];
 

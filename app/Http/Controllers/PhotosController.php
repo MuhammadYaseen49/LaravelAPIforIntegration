@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\uploadPhoto;
 use App\Http\Resources\photosResource;
 use App\Models\photos;
 use Illuminate\Http\Request;
@@ -9,15 +10,12 @@ use Throwable;
 
 class PhotosController extends Controller
 {
-    public function uploadPhoto(Request $request){
+    public function uploadPhoto(uploadPhoto $request){
         try {
-            $fields = $request->validate([
-                'name' => 'required|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-                'privacy' => 'required'
-            ]);
+            $fields = $request->validated();
 
             $extension = $fields['name']->extension();
-            $uniquePhoto = time() . $fields['name']->getClientOriginalName();
+            $uniquePhoto = date('d-m-Y_H-i-s') . $fields['name']->getClientOriginalName();
             $directory = 'C:/xampp/htdocs/PF_Backend/Laravel/LaravelAPI_MySQL_Advance_VueJS/storage/app/user_images/uploaded_photos/';
             $address = $directory . $uniquePhoto;
 
@@ -50,62 +48,77 @@ class PhotosController extends Controller
     }
 
     public function myPhotos(Request $request){
-        $userID = decodingUserID($request);
-        $check = Photos::where('userID', $userID)->get();
-     
-        if ($check->isEmpty()) {
-            return response([
-                'Message' => 'No Photos Found'
-            ]);
-        } else {
-            return photosResource::collection($check);
+        try{
+            $userID = decodingUserID($request);
+            $check = Photos::where('userID', $userID)->get();
+        
+            if ($check->isEmpty()) {
+                return response([
+                    'Message' => 'No Photos Found'
+                ]);
+            } else {
+                return photosResource::collection($check);
+            }
+        } catch (Throwable $e) {
+            return $e->getMessage();
         }
     }
 
     public function updatePhotoPrivacy(Request $request, $id){
-        $userID = decodingUserID($request);
+        try{
+            $userID = decodingUserID($request);
 
-        $photo = photos::where('id', $id)->where('user_id', $userID);
-        if ($photo == null) {
-            return response([
-                'Message' => 'Request not found'
-            ]);
-        }
-        if (isset($photo)) {
-            $photo->update([
-                'privacy' => $request->privacy
-            ]);
-            return response([
-                'Message' => 'Privacy updated successfully'
-            ]);
+            $photo = photos::where('id', $id)->where('user_id', $userID);
+            if ($photo == null) {
+                return response([
+                    'Message' => 'Request not found'
+                ]);
+            }
+            if (isset($photo)) {
+                $photo->update([
+                    'privacy' => $request->privacy
+                ]);
+                return response([
+                    'Message' => 'Privacy updated successfully'
+                ]);
+            }
+        } catch (Throwable $e) {
+            return $e->getMessage();
         }
     }
 
     public function deletePhoto($id){
-
-        if (photos::where('id', $id)->delete($id)) {
-            return response([
-                'Message' => 'Photo deleted successfully'
-            ]);
-        } else {
-            return response([
-                'Message' => 'Not found'
-            ]);
+        try{
+            if (photos::where('id', $id)->delete($id)) {
+                return response([
+                    'Message' => 'Photo deleted successfully'
+                ]);
+            } else {
+                return response([
+                    'Message' => 'Not found'
+                ]);
+            }
+        } catch (Throwable $e) {
+            return $e->getMessage();
         }
     }
 
     public function searchPhoto(Request $request){
-        $searchable = $request->name;
+        try{
+            $searchable = $request->name;
 
-        $photo = photos::where('privacy','public')->where('name', 'LIKE', '%' . $searchable . '%')->orWhere('address', 'LIKE', '%' . $searchable . '%')->orWhere('extension', 'LIKE', '%' . $searchable . '%')->get();
-        if (count($photo) > 0)
-            return response([
-                'Photo' => $photo
-            ]);
-        else {
-            return response([
-                'Message' => 'No result'
-            ]);
+            $photo = photos::where('privacy','public')->where('name', 'LIKE', '%' . $searchable . '%')->orWhere('address', 'LIKE', '%' . $searchable . '%')->orWhere('extension', 'LIKE', '%' . $searchable . '%')->get();
+            if (count($photo) > 0)
+                return response([
+                    'Photo' => $photo
+                ]);
+            else {
+                return response([
+                    'Message' => 'No result'
+                ]);
+            }
+        } catch (Throwable $e) {
+            return $e->getMessage();
         }
     }
 }

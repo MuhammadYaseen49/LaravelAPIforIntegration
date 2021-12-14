@@ -16,7 +16,7 @@ class CreatePermissionsTable extends Migration
         Schema::create('permission', function (Blueprint $table) {
             $table->id();
             $table->string('granted_by');
-            $table->string('granted_to');
+            $table->string('access_to');
             $table->string('address');
         });
     }
