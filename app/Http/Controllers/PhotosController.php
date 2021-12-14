@@ -16,7 +16,7 @@ class PhotosController extends Controller
 
             $extension = $fields['name']->extension();
             $uniquePhoto = date('d-m-Y_H-i-s') . $fields['name']->getClientOriginalName();
-            $directory = 'C:/xampp/htdocs/PF_Backend/Laravel/LaravelAPI_MySQL_Advance_VueJS/storage/app/user_images/uploaded_photos/';
+            $directory = 'C:/xampp/htdocs/PF_Backend/Laravel/laravelAPIforIntegration/storage/app/user_images/uploaded_photos/';
             $address = $directory . $uniquePhoto;
 
             $fields['name']->storeAs('user_images/uploaded_photos/', $uniquePhoto);
