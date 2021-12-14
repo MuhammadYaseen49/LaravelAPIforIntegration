@@ -16,14 +16,12 @@ class PhotosController extends Controller
                 'privacy' => 'required'
             ]);
 
-            if ($fields) {
-                $extension = $fields['name']->extension();
-                $uniquePhoto = time() . $fields['name']->getClientOriginalName();
+            $extension = $fields['name']->extension();
+            $uniquePhoto = time() . $fields['name']->getClientOriginalName();
+            $directory = 'C:/xampp/htdocs/PF_Backend/Laravel/LaravelAPI_MySQL_Advance_VueJS/storage/app/user_images/uploaded_photos/';
+            $address = $directory . $uniquePhoto;
 
-                $fields['name']->storeAs('user_images/uploaded_photos/', $uniquePhoto);
-                $directory = 'C:/xampp/htdocs/PF_Backend/Laravel/LaravelAPI_MySQL_Advance_VueJS/storage/app/user_images/uploaded_photos/';
-                $address = $directory . $uniquePhoto;
-            }
+            $fields['name']->storeAs('user_images/uploaded_photos/', $uniquePhoto);
 
             $userID = decodingUserID($request);
 
@@ -35,20 +33,51 @@ class PhotosController extends Controller
                     'address' => $address,
                     'privacy' => $fields['privacy']
                 ]);
-            }
-            //if user is not logged in
-            if (!isset($userID)) {
                 return response([
-                    'message' => 'Cant upload photo without logging In'
+                    'Message' => 'Photo uploaded successfully',
+                    'Shareable Link' => $address
                 ]);
             }
-            //message on Success
-            return response([
-                'message' => 'Image Upload successfully',
-                'shareable Link' => $address
-            ], 200);
+            if (!isset($userID)) {
+                return response([
+                    'Message' => 'Cant upload photo without logging In'
+                ]);
+            }
+            
         } catch (Throwable $e) {
             return $e->getMessage();
+        }
+    }
+
+    public function myPhotos(Request $request){
+        $userID = decodingUserID($request);
+        $check = Photos::where('userID', $userID)->get();
+     
+        if ($check->isEmpty()) {
+            return response([
+                'Message' => 'No Photos Found'
+            ]);
+        } else {
+            return photosResource::collection($check);
+        }
+    }
+
+    public function updatePhotoPrivacy(Request $request, $id){
+        $userID = decodingUserID($request);
+
+        $photo = photos::where('id', $id)->where('user_id', $userID);
+        if ($photo == null) {
+            return response([
+                'Message' => 'Request not found'
+            ]);
+        }
+        if (isset($photo)) {
+            $photo->update([
+                'privacy' => $request->privacy
+            ]);
+            return response([
+                'Message' => 'Privacy updated successfully'
+            ]);
         }
     }
 
@@ -56,41 +85,27 @@ class PhotosController extends Controller
 
         if (photos::where('id', $id)->delete($id)) {
             return response([
-                'Status' => '200',
-                'message' => 'Image Deleted successfully'
-            ], 200);
+                'Message' => 'Photo deleted successfully'
+            ]);
         } else {
             return response([
-                'message' => 'Not Found.'
-            ], 200);
+                'Message' => 'Not found'
+            ]);
         }
-    }
-
-    public function myPhotos(Request $request){
-        $userID = decodingUserID($request);
-        $check = Photos::where('userID', $userID)->get();
-        //message on Successfully
-
-        if ($check->isEmpty()) {
-            return response([
-                'Message' => 'No Photos Found'
-            ], 200);
-        } else {
-            return photosResource::collection($check);
-        }
-
     }
 
     public function searchPhoto(Request $request){
         $searchable = $request->name;
 
-        $photo = photos::where('privacy','public')->where('name', 'LIKE', '%' . $searchable . '%')->orWhere('address', 'LIKE', '%' . $searchable . '%')->get();
-        if (count($searchable) > 0)
-            return response(['Photo' => $photo], 200);
+        $photo = photos::where('privacy','public')->where('name', 'LIKE', '%' . $searchable . '%')->orWhere('address', 'LIKE', '%' . $searchable . '%')->orWhere('extension', 'LIKE', '%' . $searchable . '%')->get();
+        if (count($photo) > 0)
+            return response([
+                'Photo' => $photo
+            ]);
         else {
-            return response(['Message' => 'No Details found']);
+            return response([
+                'Message' => 'No result'
+            ]);
         }
     }
-
-   
 }

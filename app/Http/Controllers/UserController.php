@@ -18,6 +18,12 @@ class UserController extends Controller{
     public function register(userRegistration $request){
        try {
             $fields = $request->validated();
+
+            $uniquePhoto = time() . $fields['profile_picture']->getClientOriginalName();
+            $fields['profile_picture']->storeAs('user_images/profile_photos/', $uniquePhoto);
+            $directory = 'C:/xampp/htdocs/PF_Backend/Laravel/laravelAPIforIntegration/storage/app/user_images/profile_photos/';
+            $address = $directory . $uniquePhoto;
+            
             $token = (new GenerateToken)->createToken($fields['email']);
             $verificationURL = 'http://127.0.0.1:8000/api/emailVerification/' . $token . '/' . $fields['email'];
             User::create([
@@ -25,14 +31,12 @@ class UserController extends Controller{
                 'email' => $fields['email'],
                 'password' => Hash::make($fields['password']),
                 'age' => $fields['age'],
-                'profile_picture' => $fields['profile_picture']->store('user_images/profile_photos'), 
+                'profile_picture' => $address, 
                 'Verification_Token' => $token,
                 'email_verified_at' => null,
                 'PasswordReset_Token' => null
             ]);
-            
             emailRegistration::dispatch($fields['email'], $verificationURL); //php artisan queue:work
-            
             return [
                 'Message' => "Registration request sent successfully!"
             ];
@@ -111,7 +115,7 @@ class UserController extends Controller{
     public function logout(Request $request){
         try {
             $userID = decodingUserID($request);
-            $userExist = Token::where("userID", $userID)->first();
+            $userExist = Tokens::where("userID", $userID)->first();
             if ($userExist) {
                 $userExist->delete();
             }
@@ -148,13 +152,17 @@ class UserController extends Controller{
     public function updateProfile(Request $request, $id){
         try {
             $user = User::all()->where('id', $id)->first();
-            if (isset($user)) {
-                $user->update($request->all());               
+
+            if (isset($user)) {             
                 if ($request->file('profile_picture') != null) {
-                    $profilePicture = $request->file('profile_picture')->store('user_images');
-                    $user->profile_picture = $profilePicture;
-                    $user->save();
+                    $uniquePhoto = time() . $user['profile_picture']->getClientOriginalName();
+                    $directory = 'C:/xampp/htdocs/PF_Backend/Laravel/laravelAPIforIntegration/storage/app/user_images/profile_photos/';
+                    $address = $directory . $uniquePhoto;
+                    $request->file('profile_picture')->storeAs('user_images/profile_photos/', $uniquePhoto);
+                    $user->profile_picture = $address;
                 }
+                
+                $user->save();
 
                 return response([
                     'message' => 'You have successfully updated your Profile',
@@ -165,6 +173,7 @@ class UserController extends Controller{
                     'message' => 'User not found',
                 ]);
             }
+
         } catch (Throwable $e) {
             return $e->getMessage();
         }

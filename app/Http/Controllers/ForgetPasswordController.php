@@ -28,11 +28,10 @@ class ForgetPasswordController extends Controller
                 'token' => $token,
                 'expiry' => 0
             ]);
-            // dd('asa');
+
             resetPassword::dispatch($fields['email'], $PasswordReset_Token);
             
             return [
-                'Status' => 1,
                 'Message' => "Reset password request sent successfully!"
             ];
             
@@ -49,20 +48,18 @@ class ForgetPasswordController extends Controller
             
             if($verify == null){
                 return [
-                    'Status' => 1,
                     'Message' => "Incorrect Data!"
                 ]; 
             }
 
             $verify->expiry = 1;
-            $verify->update();
+            $verify->save();
 
             User::where('email',$email)->update([
                 'password' => Hash::make($fields['password'])
             ]);
 
             return [
-                'Status' => 1,
                 'Message' => "Password changed successfully!"
             ]; 
 
