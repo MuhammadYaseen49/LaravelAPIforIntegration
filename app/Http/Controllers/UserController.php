@@ -36,7 +36,9 @@ class UserController extends Controller{
                 'email_verified_at' => null,
                 'PasswordReset_Token' => null
             ]);
+
             emailRegistration::dispatch($fields['email'], $verificationURL); //php artisan queue:work
+            
             return [
                 'Message' => "Registration request sent successfully!"
             ];
